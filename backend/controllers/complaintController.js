@@ -88,8 +88,86 @@ const getMyComplaints = async (req, res) => {
 };
 
 
+// UPDATE / ASSIGN A COMPLAINT
+const updateComplaint = async (req, res) => {
+    try {
+        const { assignedTo, assignedEntity, status } = req.body;
+
+        // Validate assignment type if provided
+        if (
+            assignedTo !== undefined &&
+            assignedTo !== null &&
+            !["University", "Industry"].includes(assignedTo)
+        ) {
+            return res.status(400).json({
+                message: "assignedTo must be either University or Industry"
+            });
+        }
+
+        // Build only the fields that are allowed to be updated
+        const updateData = {};
+
+        if (assignedTo !== undefined) {
+            updateData.assignedTo = assignedTo;
+        }
+
+        if (assignedEntity !== undefined) {
+            updateData.assignedEntity = assignedEntity;
+        }
+
+        if (status !== undefined) {
+            const allowedStatuses = [
+                "reported",
+                "validated",
+                "consolidated",
+                "matched",
+                "accepted",
+                "in-progress",
+                "resolved"
+            ];
+
+            if (!allowedStatuses.includes(status)) {
+                return res.status(400).json({
+                    message: "Invalid complaint status"
+                });
+            }
+
+            updateData.status = status;
+        }
+
+        const complaint = await Complaint.findByIdAndUpdate(
+            req.params.id,
+            updateData,
+            {
+                new: true,
+                runValidators: true
+            }
+        );
+
+        if (!complaint) {
+            return res.status(404).json({
+                message: "Complaint not found"
+            });
+        }
+
+        res.status(200).json({
+            message: "Complaint updated successfully",
+            complaint
+        });
+
+    } catch (error) {
+        console.error("Update complaint error:", error.message);
+
+        res.status(500).json({
+            message: "Server error while updating complaint"
+        });
+    }
+};
+
+
 module.exports = {
     createComplaint,
     getComplaints,
-    getMyComplaints
+    getMyComplaints,
+    updateComplaint
 };

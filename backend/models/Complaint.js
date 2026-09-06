@@ -69,6 +69,18 @@ const complaintSchema = new mongoose.Schema(
             type: String,
             enum: ["low", "medium", "high", "critical"],
             default: "medium"
+        },
+
+        // Assignment information
+        assignedTo: {
+            type: String,
+            enum: ["University", "Industry"],
+            default: null
+        },
+
+        assignedEntity: {
+            type: mongoose.Schema.Types.ObjectId,
+            default: null
         }
     },
     {

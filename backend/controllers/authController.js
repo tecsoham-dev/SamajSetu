@@ -57,12 +57,12 @@ const registerUser = async (req, res) => {
 // LOGIN USER
 const loginUser = async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { email, password, role } = req.body;
 
-        // Check that email and password are provided
-        if (!email || !password) {
+        // Check that email, password and role are provided
+        if (!email || !password || !role) {
             return res.status(400).json({
-                message: "Please provide email and password"
+                message: "Please provide email, password and role"
             });
         }
 
@@ -84,6 +84,16 @@ const loginUser = async (req, res) => {
         if (!isPasswordCorrect) {
             return res.status(401).json({
                 message: "Invalid email or password"
+            });
+        }
+
+        // Check whether selected role matches the user's actual role
+        if (
+            typeof role !== "string" ||
+            user.role.toLowerCase() !== role.toLowerCase()
+        ) {
+            return res.status(401).json({
+                message: "Selected role does not match your account"
             });
         }
 
@@ -125,4 +135,3 @@ module.exports = {
     registerUser,
     loginUser
 };
-           

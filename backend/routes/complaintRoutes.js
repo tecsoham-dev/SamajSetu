@@ -3,7 +3,8 @@ const express = require("express");
 const {
     createComplaint,
     getComplaints,
-    getMyComplaints
+    getMyComplaints,
+    updateComplaint
 } = require("../controllers/complaintController");
 
 const { protect } = require("../middleware/authMiddleware");
@@ -32,6 +33,14 @@ router.get(
     protect,
     authorize("citizen"),
     getMyComplaints
+);
+
+// Authority assigns/updates a complaint
+router.put(
+    "/:id",
+    protect,
+    authorize("authority"),
+    updateComplaint
 );
 
 module.exports = router;
