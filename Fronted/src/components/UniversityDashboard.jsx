@@ -15,17 +15,76 @@ function UniversityDashboard() {
     const [complaints, setComplaints] = useState([]);
 
 useEffect(() => {
+  const fetchComplaints = async () => {
+    try {
+      const token = localStorage.getItem("token");
 
-  const data =
-    JSON.parse(localStorage.getItem("complaints")) || [];
+      const response = await fetch(
+        "http://localhost:5000/api/complaints",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
-  const assignedComplaints = data.filter(
-    (item) => item.assignedTo === "University"
-  );
+      const data = await response.json();
 
-  setComplaints(assignedComplaints);
+      if (!response.ok) {
+        alert(data.message);
+        return;
+      }
 
+      const assignedComplaints = data.complaints.filter(
+        (item) => item.assignedTo === "University"
+      );
+
+      setComplaints(assignedComplaints);
+
+    } catch (error) {
+      console.error(error);
+      alert("Server Error");
+    }
+  };
+
+  fetchComplaints();
 }, []);
+const updateStatus = async (id, newStatus) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await fetch(
+      `http://localhost:5000/api/complaints/${id}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          status: newStatus,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(data.message);
+      return;
+    }
+
+    setComplaints((prev) =>
+      prev.map((item) =>
+        item._id === id ? data.complaint : item
+      )
+    );
+
+  } catch (error) {
+    console.error(error);
+    alert("Server Error");
+  }
+};
 const navigate = useNavigate();
 
 const handleLogout = () => {
@@ -125,6 +184,7 @@ const handleLogout = () => {
     <th>Category</th>
     <th>Location</th>
     <th>Status</th>
+    <th>Action</th>
   </tr>
 </thead>
 
@@ -133,7 +193,7 @@ const handleLogout = () => {
   {complaints.length === 0 ? (
 
     <tr>
-      <td colSpan="4">
+      <td colSpan="5">
         No Assigned Complaints
       </td>
     </tr>
@@ -142,7 +202,7 @@ const handleLogout = () => {
 
     complaints.map((item) => (
 
-      <tr key={item.id}>
+      <tr key={item._id}>
 
         <td>{item.title}</td>
 
@@ -151,6 +211,22 @@ const handleLogout = () => {
         <td>{item.location}</td>
 
         <td>{item.status}</td>
+
+<td>
+  <button
+    className="progress-btn"
+    onClick={() => updateStatus(item._id, "in-progress")}
+  >
+    In Progress
+  </button>
+
+  <button
+    className="resolved-btn"
+    onClick={() => updateStatus(item._id, "resolved")}
+  >
+    Resolved
+  </button>
+</td>
 
       </tr>
 

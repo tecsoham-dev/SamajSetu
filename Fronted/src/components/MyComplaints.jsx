@@ -4,12 +4,37 @@ import { useEffect, useState } from "react";
 function MyComplaints() {
   const [complaints, setComplaints] = useState([]);
 
-  useEffect(() => {
-    const data =
-      JSON.parse(localStorage.getItem("complaints")) || [];
+ useEffect(() => {
+  const fetchComplaints = async () => {
+    try {
+      const token = localStorage.getItem("token");
 
-    setComplaints(data);
-  }, []);
+      const response = await fetch(
+        "http://localhost:5000/api/complaints/my",
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.message);
+        return;
+      }
+
+      setComplaints(data.complaints);
+    } catch (error) {
+      console.error(error);
+      alert("Server Error");
+    }
+  };
+
+  fetchComplaints();
+}, []);
 
   return (
     <div className="complaints-container">
@@ -43,13 +68,13 @@ function MyComplaints() {
 
             {complaints.map((item) => (
 
-              <tr key={item.id}>
+              <tr key={item._id}>
                 <td>{item.title}</td>
                 <td>{item.category}</td>
                 <td>{item.location}</td>
                 <td>{item.severity}</td>
                 <td>{item.status}</td>
-                <td>{item.date}</td>
+                <td>{new Date(item.createdAt).toLocaleDateString()}</td>
               </tr>
 
             ))}

@@ -11,35 +11,41 @@ function Register() {
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("citizen");
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    const users = JSON.parse(localStorage.getItem("users")) || [];
-
-    const existingUser = users.find(
-      (user) => user.email === email
+  try {
+    const response = await fetch(
+      "http://localhost:5000/api/auth/register",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          role,
+        }),
+      }
     );
 
-    if (existingUser) {
-      alert("Email already registered!");
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(data.message);
       return;
     }
 
-    const newUser = {
-      username: name,
-      email: email,
-      password: password,
-      role: role,
-    };
-
-    users.push(newUser);
-
-    localStorage.setItem("users", JSON.stringify(users));
-
-    alert("Registration Successful!");
+    alert(data.message);
 
     navigate("/login");
-  };
+  } catch (error) {
+    console.error(error);
+    alert("Server Error");
+  }
+};
 
   return (
     <div className="register-container">
@@ -86,7 +92,7 @@ function Register() {
             <option value="citizen">Citizen</option>
             <option value="industry">Industry</option>
             <option value="university">University</option>
-            <option value="authority">Authority</option>
+            
           </select>
 
           {role === "industry" && (
@@ -129,25 +135,7 @@ function Register() {
             </>
           )}
 
-          {role === "authority" && (
-            <>
-              <label>Authority Name</label>
-
-              <input
-                type="text"
-                placeholder="Enter authority name"
-                required
-              />
-
-              <label>Department ID</label>
-
-              <input
-                type="text"
-                placeholder="Enter department ID"
-                required
-              />
-            </>
-          )}
+          
 
           <button type="submit">
             Register

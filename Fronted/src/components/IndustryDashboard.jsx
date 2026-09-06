@@ -15,9 +15,36 @@ function IndustryDashboard() {
     const [complaints, setComplaints] = useState([]);
     useEffect(() => {
 
-  const data =
-    JSON.parse(localStorage.getItem("complaints")) || [];
+ useEffect(() => {
+  const fetchComplaints = async () => {
+    try {
+      const token = localStorage.getItem("token");
 
+      const response = await fetch(
+        "http://localhost:5000/api/complaints",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        const assigned = data.complaints.filter(
+          (item) => item.assignedTo === "Industry"
+        );
+
+        setComplaints(assigned);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  fetchComplaints();
+}, []);
   const assignedComplaints = data.filter(
     (item) => item.assignedTo === "Industry"
   );
@@ -25,27 +52,43 @@ function IndustryDashboard() {
   setComplaints(assignedComplaints);
 
     }, []);
-    const updateStatus = (id, newStatus) => {
+   const updateStatus = async (id, newStatus) => {
+  try {
+    const token = localStorage.getItem("token");
 
-  const allComplaints =
-    JSON.parse(localStorage.getItem("complaints")) || [];
+    const response = await fetch(
+      `http://localhost:5000/api/complaints/${id}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          status: newStatus,
+        }),
+      }
+    );
 
-  const updatedAll = allComplaints.map((item) =>
-    item.id === id
-      ? { ...item, status: newStatus }
-      : item
-  );
+    const data = await response.json();
 
-  localStorage.setItem(
-    "complaints",
-    JSON.stringify(updatedAll)
-  );
+    if (!response.ok) {
+      alert(data.message);
+      return;
+    }
 
-  setComplaints(
-    updatedAll.filter(
-      (item) => item.assignedTo === "Industry"
-    )
-  );
+    setComplaints((prev) =>
+      prev.map((item) =>
+        item._id === id ? data.complaint : item
+      )
+    );
+
+    alert("Status updated successfully!");
+
+  } catch (error) {
+    console.error(error);
+    alert("Server Error");
+  }
 };
     const navigate = useNavigate();
 
@@ -173,7 +216,7 @@ const handleLogout = () => {
 
     complaints.map((item) => (
 
-      <tr key={item.id}>
+      <tr key={item._id}>
 
         <td>{item.title}</td>
 
@@ -188,7 +231,7 @@ const handleLogout = () => {
           <button
             className="progress-btn"
             onClick={() =>
-              updateStatus(item.id, "In Progress")
+              updateStatus(item._id, "In Progress")
             }
           >
             In Progress
@@ -197,7 +240,7 @@ const handleLogout = () => {
           <button
             className="resolved-btn"
             onClick={() =>
-              updateStatus(item.id, "Resolved")
+              updateStatus(item._id, "Resolved")
             }
           >
             Resolved

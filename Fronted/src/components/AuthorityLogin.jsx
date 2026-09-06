@@ -8,12 +8,40 @@ function AuthorityLogin() {
 
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleLogin = async(e) => {
     e.preventDefault();
 
-    localStorage.setItem("currentUser", "authority");
+    try {
+  const response = await fetch(
+    "http://localhost:5000/api/auth/login",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email,
+        password,
+        role: "authority",
+      }),
+    }
+  );
 
-    navigate("/authority-dashboard");
+  const data = await response.json();
+
+  if (!response.ok) {
+    alert(data.message);
+    return;
+  }
+
+  localStorage.setItem("token", data.token);
+  localStorage.setItem("currentUser", JSON.stringify(data.user));
+
+  navigate("/authority-dashboard");
+} catch (error) {
+  console.error(error);
+  alert("Server Error");
+}
   };
 
   return (

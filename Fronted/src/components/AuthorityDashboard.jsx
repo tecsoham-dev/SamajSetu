@@ -13,25 +13,95 @@ import {
 function AuthorityDashboard() {
 
   const [universities, setUniversities] = useState([
-    "St. Thomas College",
-    "MAKAUT",
-    "Jadavpur University",
+    
   ]);
 
   const [industries, setIndustries] = useState([
-    "TCS",
-    "Infosys",
-    "Wipro",
+    
   ]);
 
   const [complaints, setComplaints] = useState([]);
 
   useEffect(() => {
-    const data =
-      JSON.parse(localStorage.getItem("complaints")) || [];
-    setComplaints(data);
-  }, []);
+  const fetchComplaints = async () => {
+    try {
+    const token = localStorage.getItem("token");
 
+    const response = await fetch(
+      "http://localhost:5000/api/complaints",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(data.message);
+      return;
+    }
+
+    setComplaints(data.complaints);
+
+  } catch (error) {
+    console.error(error);
+    alert("Server Error");
+  }
+  };
+
+  const fetchUniversities = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(
+        "http://localhost:5000/api/universities",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setUniversities(data.universities);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const fetchIndustries = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(
+        "http://localhost:5000/api/industries",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setIndustries(data.industries);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  fetchComplaints();
+  fetchUniversities();
+  fetchIndustries();
+
+}, []);
   const addUniversity = () => {
     const name = prompt("Enter University Name");
     if (name) {
@@ -44,20 +114,44 @@ function AuthorityDashboard() {
       universities.filter((_, i) => i !== index)
     );
   };
-  const assignComplaint = (id, assignedTo) => {
+  const assignComplaint = async (id, assignedTo) => {
+  try {
+    const token = localStorage.getItem("token");
 
-  const updatedComplaints = complaints.map((item) =>
-    item.id === id
-      ? { ...item, assignedTo }
-      : item
-  );
+    const response = await fetch(
+      `http://localhost:5000/api/complaints/${id}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          assignedTo,
+          status: "matched",
+        }),
+      }
+    );
 
-  setComplaints(updatedComplaints);
+    const data = await response.json();
 
-  localStorage.setItem(
-    "complaints",
-    JSON.stringify(updatedComplaints)
-  );
+    if (!response.ok) {
+      alert(data.message);
+      return;
+    }
+
+    setComplaints((prev) =>
+      prev.map((item) =>
+        item._id === id ? data.complaint : item
+      )
+    );
+
+    alert("Complaint assigned successfully!");
+
+  } catch (error) {
+    console.error(error);
+    alert("Server Error");
+  }
 };
 
   const addIndustry = () => {
@@ -132,10 +226,7 @@ const handleLogout = () => {
           <div className="card">
             <h2>
               {
-                complaints.filter(
-                  (c) => c.status === "Pending"
-                ).length
-              }
+                complaints.filter((c) => c.status === "reported").length}
             </h2>
             <p>Pending</p>
           </div>
@@ -144,7 +235,7 @@ const handleLogout = () => {
             <h2>
               {
                 complaints.filter(
-                  (c) => c.status === "Resolved"
+                  (c) => c.status === "resolved"
                 ).length
               }
             </h2>
@@ -209,16 +300,16 @@ const handleLogout = () => {
 
               {universities.map((uni, index) => (
 
-                <tr key={index}>
+                <tr key={uni._id}>
 
-                  <td>{uni}</td>
+                  <td>{uni.name}</td>
 
                   <td>
 
                     <button
                       className="delete-btn"
                       onClick={() =>
-                        deleteUniversity(index)
+                        deleteUniversity(uni._id)
                       }
                     >
                       <FaTrash />
@@ -270,15 +361,15 @@ const handleLogout = () => {
 
               {industries.map((industry, index) => (
 
-                <tr key={index}>
+                <tr key={industry._id}>
 
-                  <td>{industry}</td>
+                  <td>{industry.companyName}</td>
 
                   <td>
 
                     <button
                       className="delete-btn"
-                      onClick={() => deleteIndustry(index)}
+                      onClick={() => deleteIndustry(industry._id)}
                     >
                       <FaTrash />
                       Delete
@@ -332,12 +423,12 @@ const handleLogout = () => {
 
                 complaints.map((item) => (
 
-                  <tr key={item.id}>
+                  <tr key={item._id}>
 
   <td>{item.title}</td>
   <td>{item.category}</td>
   <td>{item.location}</td>
-  <td>{item.severity}</td>
+  <td>{item.priority}</td>
   <td>{item.status}</td>
 
   <td>{item.assignedTo || "Not Assigned"}</td>
@@ -347,7 +438,7 @@ const handleLogout = () => {
     <button
       className="assign-btn"
       onClick={() =>
-        assignComplaint(item.id, "University")
+        assignComplaint(item._id, "University")
       }
     >
       University
@@ -356,7 +447,7 @@ const handleLogout = () => {
     <button
       className="assign-btn"
       onClick={() =>
-        assignComplaint(item.id, "Industry")
+        assignComplaint(item._id, "Industry")
       }
     >
       Industry

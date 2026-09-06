@@ -12,57 +12,61 @@ import {
 function Login() {
   const navigate = useNavigate();
 
-  const [role, setRole] = useState("Citizen");
+  const [role, setRole] = useState("citizen");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleLogin = (e) => {
-    e.preventDefault();
+  const handleLogin = async (e) => {
+  e.preventDefault();
 
-    const users = JSON.parse(localStorage.getItem("users")) || [];
-     if (
-    role === "University" &&
-    email === "authorityyyymmm@samajsetu.com" &&
-    password === "admin123987"
-    ) {
-    navigate("/University-dashboard");
+  const response = await fetch(
+    "http://localhost:5000/api/auth/login",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email,
+        password,
+        role,
+      }),
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    alert(data.message);
     return;
-    }
-    const user = users.find(
-      (u) =>
-        (u.email === email || u.username === email) &&
-        u.password === password &&
-        u.role.toLowerCase() === role.toLowerCase()
-    );
+  }
 
-    if (!user) {
-      alert("Invalid Credentials or Wrong Role!");
-      return;
-    }
+  localStorage.setItem("token", data.token);
+  localStorage.setItem("currentUser", JSON.stringify(data.user));
 
-    localStorage.setItem("currentUser", JSON.stringify(user));
+  const user = data.user;
 
-    switch (user.role.toLowerCase()) {
-      case "citizen":
-        navigate("/dashboard");
-        break;
+  switch (user.role.toLowerCase()) {
+    case "citizen":
+      navigate("/dashboard");
+      break;
 
-      case "university":
-        navigate("/university-dashboard");
-        break;
+    case "university":
+      navigate("/university-dashboard");
+      break;
 
-      case "industry":
-        navigate("/industry-dashboard");
-        break;
+    case "industry":
+      navigate("/industry-dashboard");
+      break;
 
-      case "authority":
-        navigate("/authority-dashboard");
-        break;
+    case "authority":
+      navigate("/authority-dashboard");
+      break;
 
-      default:
-        alert("Invalid Role");
-    }
-  };
+    default:
+      alert("Invalid Role");
+  }
+};
 
   return (
     <div className="login-page">
@@ -79,32 +83,32 @@ function Login() {
         <div className="role-container">
 
           <div
-            className={`role-card ${role === "Citizen" ? "active" : ""}`}
-            onClick={() => setRole("Citizen")}
+            className={`role-card ${role === "citizen" ? "active" : ""}`}
+            onClick={() => setRole("citizen")}
           >
             <FaUser className="role-icon citizen" />
             <p>Citizen</p>
           </div>
 
           <div
-            className={`role-card ${role === "University" ? "active" : ""}`}
-            onClick={() => setRole("University")}
+            className={`role-card ${role === "university" ? "active" : ""}`}
+            onClick={() => setRole("university")}
           >
             <FaUniversity className="role-icon university" />
             <p>University</p>
           </div>
 
           <div
-            className={`role-card ${role === "Industry" ? "active" : ""}`}
-            onClick={() => setRole("Industry")}
+            className={`role-card ${role === "industry" ? "active" : ""}`}
+            onClick={() => setRole("industry")}
           >
             <FaIndustry className="role-icon industry" />
             <p>Industry</p>
           </div>
 
           <div
-            className={`role-card ${role === "Authority" ? "active" : ""}`}
-            onClick={() => setRole("Authority")}
+            className={`role-card ${role === "authority" ? "active" : ""}`}
+            onClick={() => setRole("authority")}
           >
             <FaLandmark className="role-icon authority" />
             <p>Authority</p>

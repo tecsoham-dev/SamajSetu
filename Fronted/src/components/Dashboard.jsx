@@ -14,20 +14,46 @@ import {
 function Dashboard() { 
  
   const navigate = useNavigate(); 
- 
+ const user = JSON.parse(localStorage.getItem("currentUser"));
+
   const [complaints, setComplaints] = useState([]); 
  
-  useEffect(() => { 
-    const data = 
-      JSON.parse(localStorage.getItem("complaints")) || []; 
- 
-    setComplaints(data); 
-  }, []); 
- 
-  const handleLogout = () => { 
-    localStorage.removeItem("currentUser"); 
-    navigate("/login"); 
-  }; 
+  useEffect(() => {
+  const fetchComplaints = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(
+        "http://localhost:5000/api/complaints/my",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.message);
+        return;
+      }
+
+      setComplaints(data.complaints);
+
+    } catch (error) {
+      console.error(error);
+      alert("Server Error");
+    }
+  };
+
+  fetchComplaints();
+}, []);
+  const handleLogout = () => {
+  localStorage.removeItem("token");
+  localStorage.removeItem("currentUser");
+  navigate("/login");
+};
  
   return ( 
     <div className="dashboard"> 
@@ -75,7 +101,7 @@ function Dashboard() {
 <div className="dashboard-header">
 
   <div>
-    <h1>Welcome 👋</h1>
+    <h1>Welcome, {user?.name} 👋</h1>
     <p>Citizen Dashboard</p>
   </div>
 
@@ -87,6 +113,8 @@ function Dashboard() {
   </button>
 
 </div>
+
+  
 {/* Cards */}
 
 <div className="cards">
@@ -100,18 +128,18 @@ function Dashboard() {
     <h2>
       {
         complaints.filter(
-          (item) => item.status === "Pending"
-        ).length
+  (item) => item.status === "reported"
+).length
       }
     </h2>
-    <p>Pending</p>
+    <p>Reported</p>
   </div>
 
   <div className="card">
     <h2>
       {
         complaints.filter(
-          (item) => item.status === "In Progress"
+          (item) => item.status === "in-progress"
         ).length
       }
     </h2>
@@ -122,8 +150,8 @@ function Dashboard() {
     <h2>
       {
         complaints.filter(
-          (item) => item.status === "Resolved"
-        ).length
+  (item) => item.status === "resolved"
+).length
       }
     </h2>
     <p>Resolved</p>
@@ -146,7 +174,7 @@ function Dashboard() {
         <th>Location</th>
         <th>Priority</th>
         <th>Status</th>
-        <th>Assigned To</th>
+        
       </tr>
 
     </thead>
@@ -156,14 +184,14 @@ function Dashboard() {
       {complaints.length === 0 ? (
 
         <tr>
-          <td colSpan="6">No Complaints Found</td>
+          <td colSpan="5">No Complaints Found</td>
         </tr>
 
       ) : (
 
         complaints.map((item) => (
 
-          <tr key={item.id}>
+          <tr key={item._id}>
 
             <td>{item.title}</td>
 
@@ -171,11 +199,11 @@ function Dashboard() {
 
             <td>{item.location}</td>
 
-            <td>{item.severity}</td>
+            <td>{item.priority}</td>
 
             <td>{item.status}</td>
 
-            <td>{item.assignedTo || "Not Assigned"}</td>
+            
 
           </tr>
 

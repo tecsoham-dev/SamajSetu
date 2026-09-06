@@ -6,41 +6,43 @@ function ReportProblem() {
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("Urban Infrastructure");
   const [location, setLocation] = useState("");
-  const [severity, setSeverity] = useState("Medium");
+  const [priority, setPriority] = useState("medium");
   const [image, setImage] = useState(null);
   const [analysis, setAnalysis] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async(e) => {
     e.preventDefault();
 
-    const complaint = {
-      id: Date.now(),
-      title,
-      description,
-      category,
-      location,
-      severity,
-      image: image ? image.name : "No Image",
-      status: "Pending",
-      assignedTo: "Authority",
-      reportedBy: "Citizen",
-      date: new Date().toLocaleDateString(),
-    };
+    const token = localStorage.getItem("token");
 
-    const complaints =
-      JSON.parse(localStorage.getItem("complaints")) || [];
+const response = await fetch(
+  "http://localhost:5000/api/complaints",
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+  title,
+  description,
+  category,
+  location,
+  priority,
+}),
+  }
+);
 
-    complaints.push(complaint);
+const data = await response.json();
 
-    localStorage.setItem(
-      "complaints",
-      JSON.stringify(complaints)
-    );
-
+if (!response.ok) {
+  alert(data.message);
+  return;
+}
     setAnalysis(`
 Category : ${category}
 
-Priority : ${severity}
+Priority : ${priority}
 
 Assigned Department :
 Municipal Authority
@@ -55,10 +57,10 @@ Current Status :
 Pending Authority Review
 
 Complaint ID :
-${complaint.id}
+${data.complaint._id}
 
 Reported On :
-${complaint.date}
+${new Date().toLocaleDateString()}
     `);
 
     alert("Problem Submitted Successfully!");
@@ -67,7 +69,7 @@ ${complaint.date}
     setDescription("");
     setCategory("Urban Infrastructure");
     setLocation("");
-    setSeverity("Medium");
+    setPriority("medium");
     setImage(null);
 
     e.target.reset();
@@ -111,17 +113,20 @@ ${complaint.date}
             <label>Category</label>
 
             <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-            >
-              <option>Urban Infrastructure</option>
-              <option>Road Damage</option>
-              <option>Garbage</option>
-              <option>Water Supply</option>
-              <option>Electricity</option>
-              <option>Healthcare</option>
-              <option>Education</option>
-            </select>
+  value={category}
+  onChange={(e) => setCategory(e.target.value)}
+>
+  <option value="urban-infrastructure">Urban Infrastructure</option>
+  <option value="education">Education</option>
+  <option value="healthcare">Healthcare</option>
+  <option value="agriculture">Agriculture</option>
+  <option value="water">Water</option>
+  <option value="sanitation">Sanitation</option>
+  <option value="environment">Environment</option>
+  <option value="rural-livelihood">Rural Livelihood</option>
+  <option value="accessibility">Accessibility</option>
+  <option value="public-service">Public Service</option>
+</select>
 
             <label>Location</label>
 
@@ -136,13 +141,14 @@ ${complaint.date}
             <label>Severity</label>
 
             <select
-              value={severity}
-              onChange={(e) => setSeverity(e.target.value)}
-            >
-              <option>Low</option>
-              <option>Medium</option>
-              <option>High</option>
-            </select>
+  value={priority}
+  onChange={(e) => setPriority(e.target.value)}
+>
+  <option value="low">Low</option>
+  <option value="medium">Medium</option>
+  <option value="high">High</option>
+  <option value="critical">Critical</option>
+</select>
 
             <label>Upload Image</label>
 
