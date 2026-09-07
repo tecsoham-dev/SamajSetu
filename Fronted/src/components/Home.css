@@ -46,12 +46,13 @@ body{
 }
 .green {
   color: #18a558;
-  background: transparent;
+  background: transparent !important;
 }
 
 .purple {
   color: #6b4cf5;
-  background: transparent;
+  background: transparent !important;
+
 }
 
 .dark {
