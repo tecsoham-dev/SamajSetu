@@ -20,7 +20,7 @@ function IndustryDashboard() {
         const token = localStorage.getItem("token");
 
         const response = await fetch(
-          "http://localhost:5000/api/complaints",
+          "http://https://samajsetu.onrender.com/api/complaints",
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -52,7 +52,7 @@ function IndustryDashboard() {
       const token = localStorage.getItem("token");
 
       const response = await fetch(
-        `http://localhost:5000/api/complaints/${id}`,
+        `http://https://samajsetu.onrender.com/api/complaints/${id}`,
         {
           method: "PUT",
           headers: {
