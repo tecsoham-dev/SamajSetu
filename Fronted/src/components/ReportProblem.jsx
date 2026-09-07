@@ -28,7 +28,7 @@ function ReportProblem() {
     try {
       // STEP 1: Create the citizen complaint
       const complaintResponse = await fetch(
-        "http://https://samajsetu.onrender.com/api/complaints",
+        "https://samajsetu.onrender.com/api/complaints",
         {
           method: "POST",
           headers: {
@@ -56,7 +56,7 @@ function ReportProblem() {
 
       // STEP 2: Run the REAL SamajSetu AI pipeline
       const aiResponse = await fetch(
-        `http://https://samajsetu.onrender.com/api/ai/pipeline/${complaintId}`,
+        `https://samajsetu.onrender.com/api/ai/pipeline/${complaintId}`,
         {
           method: "POST",
           headers: {
