@@ -10,7 +10,7 @@ function MyComplaints() {
       const token = localStorage.getItem("token");
 
       const response = await fetch(
-        "http://localhost:5000/api/complaints/my",
+        "https://samajsetu.onrender.com/api/complaints/my",
         {
           headers: {
             "Content-Type": "application/json",

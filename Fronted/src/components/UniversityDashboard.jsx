@@ -20,7 +20,7 @@ useEffect(() => {
       const token = localStorage.getItem("token");
 
       const response = await fetch(
-        "http://localhost:5000/api/complaints",
+        "https://samajsetu.onrender.com/api/complaints",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -54,7 +54,7 @@ const updateStatus = async (id, newStatus) => {
     const token = localStorage.getItem("token");
 
     const response = await fetch(
-      `http://localhost:5000/api/complaints/${id}`,
+      `https://samajsetu.onrender.com/api/complaints/${id}`,
       {
         method: "PUT",
         headers: {

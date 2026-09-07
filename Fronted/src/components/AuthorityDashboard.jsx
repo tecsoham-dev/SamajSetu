@@ -28,7 +28,7 @@ function AuthorityDashboard() {
     const token = localStorage.getItem("token");
 
     const response = await fetch(
-      "http://localhost:5000/api/complaints",
+      "https://samajsetu.onrender.com/api/complaints",
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -56,7 +56,7 @@ function AuthorityDashboard() {
       const token = localStorage.getItem("token");
 
       const response = await fetch(
-        "http://localhost:5000/api/universities",
+        "https://samajsetu.onrender.com/api/universities",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -79,7 +79,7 @@ function AuthorityDashboard() {
       const token = localStorage.getItem("token");
 
       const response = await fetch(
-        "http://localhost:5000/api/industries",
+        "https://samajsetu.onrender.com/api/industries",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -119,7 +119,7 @@ function AuthorityDashboard() {
     const token = localStorage.getItem("token");
 
     const response = await fetch(
-      `http://localhost:5000/api/complaints/${id}`,
+      `https://samajsetu.onrender.com/api/complaints/${id}`,
       {
         method: "PUT",
         headers: {
