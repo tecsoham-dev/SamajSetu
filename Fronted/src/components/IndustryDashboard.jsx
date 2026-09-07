@@ -8,107 +8,96 @@ import {
   FaChartLine,
   FaUserGraduate,
   FaSignOutAlt,
-  FaCheckCircle,
 } from "react-icons/fa";
 
 function IndustryDashboard() {
-    const [complaints, setComplaints] = useState([]);
-    useEffect(() => {
+  const [complaints, setComplaints] = useState([]);
+  const navigate = useNavigate();
 
- useEffect(() => {
-  const fetchComplaints = async () => {
+  useEffect(() => {
+    const fetchComplaints = async () => {
+      try {
+        const token = localStorage.getItem("token");
+
+        const response = await fetch(
+          "http://localhost:5000/api/complaints",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        const data = await response.json();
+
+        if (response.ok) {
+          const assigned = (data.complaints || []).filter(
+            (item) => item.assignedTo === "Industry"
+          );
+
+          setComplaints(assigned);
+        } else {
+          console.error(data.message || "Failed to fetch complaints");
+        }
+      } catch (error) {
+        console.error("Error fetching industry complaints:", error);
+      }
+    };
+
+    fetchComplaints();
+  }, []);
+
+  const updateStatus = async (id, newStatus) => {
     try {
       const token = localStorage.getItem("token");
 
       const response = await fetch(
-        "http://localhost:5000/api/complaints",
+        `http://localhost:5000/api/complaints/${id}`,
         {
+          method: "PUT",
           headers: {
+            "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
+          body: JSON.stringify({
+            status: newStatus,
+          }),
         }
       );
 
       const data = await response.json();
 
-      if (response.ok) {
-        const assigned = data.complaints.filter(
-          (item) => item.assignedTo === "Industry"
-        );
-
-        setComplaints(assigned);
+      if (!response.ok) {
+        alert(data.message || "Unable to update status");
+        return;
       }
+
+      setComplaints((prev) =>
+        prev.map((item) =>
+          item._id === id ? data.complaint : item
+        )
+      );
+
+      alert("Status updated successfully!");
     } catch (error) {
-      console.error(error);
+      console.error("Status update error:", error);
+      alert("Server error");
     }
   };
 
-  fetchComplaints();
-}, []);
-  const assignedComplaints = data.filter(
-    (item) => item.assignedTo === "Industry"
-  );
-
-  setComplaints(assignedComplaints);
-
-    }, []);
-   const updateStatus = async (id, newStatus) => {
-  try {
-    const token = localStorage.getItem("token");
-
-    const response = await fetch(
-      `http://localhost:5000/api/complaints/${id}`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          status: newStatus,
-        }),
-      }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      alert(data.message);
-      return;
-    }
-
-    setComplaints((prev) =>
-      prev.map((item) =>
-        item._id === id ? data.complaint : item
-      )
-    );
-
-    alert("Status updated successfully!");
-
-  } catch (error) {
-    console.error(error);
-    alert("Server Error");
-  }
-};
-    const navigate = useNavigate();
-
-const handleLogout = () => {
-  localStorage.removeItem("currentUser");
-  navigate("/login");
-};
-
+  const handleLogout = () => {
+    localStorage.removeItem("currentUser");
+    localStorage.removeItem("token");
+    navigate("/login");
+  };
 
   return (
     <div className="industry-dashboard">
 
-      {/* Sidebar */}
-
       <div className="sidebar">
-
         <h2 className="logo">SamajSetu</h2>
 
         <ul>
-
           <li className="active">
             <FaIndustry /> Dashboard
           </li>
@@ -130,19 +119,14 @@ const handleLogout = () => {
           </li>
 
           <li onClick={handleLogout}>
-  <FaSignOutAlt /> Logout
-</li>
-
+            <FaSignOutAlt /> Logout
+          </li>
         </ul>
-
       </div>
-
-      {/* Main */}
 
       <div className="main-content">
 
         <div className="dashboard-header">
-
           <div>
             <h1>Welcome 👋</h1>
             <p>Industry Dashboard</p>
@@ -151,10 +135,7 @@ const handleLogout = () => {
           <button className="industry-btn">
             + New Collaboration
           </button>
-
         </div>
-
-        {/* Cards */}
 
         <div className="cards">
 
@@ -180,100 +161,87 @@ const handleLogout = () => {
 
         </div>
 
-        {/* Table */}
-
         <div className="table-section">
 
           <h2>Current Collaborations</h2>
 
           <table>
-
             <thead>
-
-              
-
-            <tr>
-            <th>Problem</th>
-            <th>Category</th>
-            <th>Location</th>
-            <th>Status</th>
-            <th>Action</th>
-            </tr>
-
-
-
+              <tr>
+                <th>Problem</th>
+                <th>Category</th>
+                <th>Location</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
             </thead>
 
-                <tbody>
+            <tbody>
 
-  {complaints.length === 0 ? (
+              {complaints.length === 0 ? (
+                <tr>
+                  <td colSpan="5">
+                    No Complaints Found
+                  </td>
+                </tr>
+              ) : (
+                complaints.map((item) => (
+                  <tr key={item._id}>
 
-    <tr>
-      <td colSpan="5">No Complaints Found</td>
-    </tr>
+                    <td>{item.title}</td>
 
-  ) : (
+                    <td>{item.category}</td>
 
-    complaints.map((item) => (
+                    <td>{item.location}</td>
 
-      <tr key={item._id}>
+                    <td>{item.status}</td>
 
-        <td>{item.title}</td>
+                    <td>
 
-        <td>{item.category}</td>
+                      <button
+                        className="progress-btn"
+                        onClick={() =>
+                          updateStatus(
+                            item._id,
+                            "in-progress"
+                          )
+                        }
+                      >
+                        In Progress
+                      </button>
 
-        <td>{item.location}</td>
+                      <button
+                        className="resolved-btn"
+                        onClick={() =>
+                          updateStatus(
+                            item._id,
+                            "resolved"
+                          )
+                        }
+                      >
+                        Resolved
+                      </button>
 
-        <td>{item.status}</td>
+                    </td>
 
-        <td>
+                  </tr>
+                ))
+              )}
 
-          <button
-            className="progress-btn"
-            onClick={() =>
-              updateStatus(item._id, "In Progress")
-            }
-          >
-            In Progress
-          </button>
-
-          <button
-            className="resolved-btn"
-            onClick={() =>
-              updateStatus(item._id, "Resolved")
-            }
-          >
-            Resolved
-          </button>
-
-        </td>
-
-      </tr>
-
-    ))
-
-  )}
-
-</tbody>
+            </tbody>
           </table>
 
         </div>
-
-        {/* Activity */}
 
         <div className="activity-box">
 
           <h2>Recent Updates</h2>
 
           <ul>
-
             <li>✔ Citizen complaints received.</li>
-
             <li>✔ Review pending complaints.</li>
-
             <li>✔ Update complaint status after action.</li>
-
-            </ul>
+          </ul>
 
         </div>
 
