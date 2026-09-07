@@ -4,84 +4,101 @@ import { useState } from "react";
 function ReportProblem() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("Urban Infrastructure");
+  const [category, setCategory] = useState("urban-infrastructure");
   const [location, setLocation] = useState("");
   const [priority, setPriority] = useState("medium");
   const [image, setImage] = useState(null);
-  const [analysis, setAnalysis] = useState("");
 
-  const handleSubmit = async(e) => {
+  const [analysis, setAnalysis] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     const token = localStorage.getItem("token");
 
-const response = await fetch(
-  "http://localhost:5000/api/complaints",
-  {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({
-  title,
-  description,
-  category,
-  location,
-  priority,
-}),
-  }
-);
+    if (!token) {
+      alert("Please login again.");
+      return;
+    }
 
-const data = await response.json();
+    setLoading(true);
+    setAnalysis(null);
 
-if (!response.ok) {
-  alert(data.message);
-  return;
-}
-    setAnalysis(`
-Category : ${category}
+    try {
+      // STEP 1: Create the citizen complaint
+      const complaintResponse = await fetch(
+        "http://localhost:5000/api/complaints",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            title,
+            description,
+            category,
+            location,
+            priority,
+          }),
+        }
+      );
 
-Priority : ${priority}
+      const complaintData = await complaintResponse.json();
 
-Assigned Department :
-Municipal Authority
+      if (!complaintResponse.ok) {
+        alert(complaintData.message || "Failed to submit complaint.");
+        return;
+      }
 
-Suggested Partner :
-University + Industry
+      const complaintId = complaintData.complaint._id;
 
-Estimated Resolution :
-5 - 7 Days
+      // STEP 2: Run the REAL SamajSetu AI pipeline
+      const aiResponse = await fetch(
+        `http://localhost:5000/api/ai/pipeline/${complaintId}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
-Current Status :
-Pending Authority Review
+      const aiData = await aiResponse.json();
 
-Complaint ID :
-${data.complaint._id}
+      if (!aiResponse.ok) {
+        alert(aiData.error || "AI analysis failed.");
+        return;
+      }
 
-Reported On :
-${new Date().toLocaleDateString()}
-    `);
+      // The backend returns the actual pipeline inside "pipeline"
+      setAnalysis(aiData.pipeline);
 
-    alert("Problem Submitted Successfully!");
+      alert("Problem submitted and AI analysis completed successfully!");
 
-    setTitle("");
-    setDescription("");
-    setCategory("Urban Infrastructure");
-    setLocation("");
-    setPriority("medium");
-    setImage(null);
+      // Clear form
+      setTitle("");
+      setDescription("");
+      setCategory("urban-infrastructure");
+      setLocation("");
+      setPriority("medium");
+      setImage(null);
 
-    e.target.reset();
+      e.target.reset();
+    } catch (error) {
+      console.error("Report problem error:", error);
+      alert("Server error. Please make sure the backend is running.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="report-container">
-
       <div className="report-card">
 
         <div className="report-left">
-
           <h1>Report a Problem</h1>
 
           <p className="subtitle">
@@ -113,20 +130,34 @@ ${new Date().toLocaleDateString()}
             <label>Category</label>
 
             <select
-  value={category}
-  onChange={(e) => setCategory(e.target.value)}
->
-  <option value="urban-infrastructure">Urban Infrastructure</option>
-  <option value="education">Education</option>
-  <option value="healthcare">Healthcare</option>
-  <option value="agriculture">Agriculture</option>
-  <option value="water">Water</option>
-  <option value="sanitation">Sanitation</option>
-  <option value="environment">Environment</option>
-  <option value="rural-livelihood">Rural Livelihood</option>
-  <option value="accessibility">Accessibility</option>
-  <option value="public-service">Public Service</option>
-</select>
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+            >
+              <option value="urban-infrastructure">
+                Urban Infrastructure
+              </option>
+              <option value="education">Education</option>
+              <option value="healthcare">Healthcare</option>
+              <option value="agriculture">Agriculture</option>
+              <option value="water">Water</option>
+              <option value="sanitation">Sanitation</option>
+              <option value="environment">Environment</option>
+              <option value="rural-livelihood">Rural Livelihood</option>
+              <option value="accessibility">Accessibility</option>
+              <option value="public-service">Public Service</option>
+            </select>
+
+            <label>Severity</label>
+
+            <select
+              value={priority}
+              onChange={(e) => setPriority(e.target.value)}
+            >
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+              <option value="critical">Critical</option>
+            </select>
 
             <label>Location</label>
 
@@ -138,18 +169,6 @@ ${new Date().toLocaleDateString()}
               required
             />
 
-            <label>Severity</label>
-
-            <select
-  value={priority}
-  onChange={(e) => setPriority(e.target.value)}
->
-  <option value="low">Low</option>
-  <option value="medium">Medium</option>
-  <option value="high">High</option>
-  <option value="critical">Critical</option>
-</select>
-
             <label>Upload Image</label>
 
             <input
@@ -158,31 +177,179 @@ ${new Date().toLocaleDateString()}
               onChange={(e) => setImage(e.target.files[0])}
             />
 
-            <button type="submit">
-              Submit & Run AI Analysis
+            <button type="submit" disabled={loading}>
+              {loading
+                ? "Analyzing..."
+                : "Submit & Run AI Analysis"}
             </button>
 
           </form>
-
         </div>
 
         <div className="report-right">
 
-          <h2>AI Analysis Preview</h2>
+          <h2>AI Analysis</h2>
 
-          {analysis ? (
-            <pre>{analysis}</pre>
-          ) : (
+          {!analysis ? (
             <p>
-              Submit a problem to simulate SamajSetu's AI
-              understanding, priority assessment and routing.
+              Submit a problem to run SamajSetu's AI analysis,
+              duplicate detection and stakeholder matching.
             </p>
+          ) : (
+            <div>
+
+              <p>
+                <strong>Category:</strong>{" "}
+                {analysis.aiAnalysis?.category}
+              </p>
+
+              <p>
+                <strong>Subcategory:</strong>{" "}
+                {analysis.aiAnalysis?.subcategory}
+              </p>
+
+              <p>
+                <strong>AI Priority:</strong>{" "}
+                {analysis.aiAnalysis?.priority}
+              </p>
+
+              <p>
+                <strong>Summary:</strong>{" "}
+                {analysis.aiAnalysis?.summary}
+              </p>
+
+              <p>
+                <strong>Affected Groups:</strong>{" "}
+                {analysis.aiAnalysis?.affectedGroups?.join(", ") ||
+                  "General Public"}
+              </p>
+
+              <p>
+                <strong>Required Expertise:</strong>{" "}
+                {analysis.aiAnalysis?.requiredExpertise?.join(", ") ||
+                  "Civic Tech Solutions"}
+              </p>
+
+              <hr />
+
+              <h3>Duplicate Detection</h3>
+
+              <p>
+                <strong>Duplicate:</strong>{" "}
+                {analysis.duplicateDetection?.isDuplicate
+                  ? "Yes"
+                  : "No"}
+              </p>
+
+              <p>
+                <strong>Similarity:</strong>{" "}
+                {analysis.duplicateDetection?.similarityPercentage ||
+                  "0%"}
+              </p>
+
+              <p>
+                {analysis.duplicateDetection?.recommendation}
+              </p>
+
+              <hr />
+
+              <h3>Authority Routing</h3>
+
+              <p>
+                <strong>Department:</strong>{" "}
+                {analysis.authorityRouting?.assignedDepartment ||
+                  "Not determined"}
+              </p>
+
+              <p>
+                <strong>Jurisdiction:</strong>{" "}
+                {analysis.authorityRouting?.jurisdiction ||
+                  location}
+              </p>
+
+              <p>
+                <strong>SLA:</strong>{" "}
+                {analysis.authorityRouting?.slaTarget
+                  ?.resolutionTargetHours
+                  ? `${analysis.authorityRouting.slaTarget.resolutionTargetHours} hours`
+                  : "Not determined"}
+              </p>
+
+              <hr />
+
+              <h3>University Match</h3>
+
+              {analysis.universityMatch ? (
+                <>
+                  <p>
+                    <strong>
+                      {analysis.universityMatch.name}
+                    </strong>
+                  </p>
+
+                  <p>
+                    Match Score:{" "}
+                    {analysis.universityMatch.matchScore}%
+                  </p>
+
+                  <p>
+                    Expertise:{" "}
+                    {analysis.universityMatch.matchedExpertise?.join(
+                      ", "
+                    )}
+                  </p>
+                </>
+              ) : (
+                <p>No university match found.</p>
+              )}
+
+              <hr />
+
+              <h3>Industry Match</h3>
+
+              {analysis.industryMatch ? (
+                <>
+                  <p>
+                    <strong>
+                      {analysis.industryMatch.companyName}
+                    </strong>
+                  </p>
+
+                  <p>
+                    Match Score:{" "}
+                    {analysis.industryMatch.matchScore}%
+                  </p>
+
+                  <p>
+                    Support:{" "}
+                    {analysis.industryMatch.supportOffered?.join(
+                      ", "
+                    ) || "General support"}
+                  </p>
+                </>
+              ) : (
+                <p>No industry match found.</p>
+              )}
+
+              <hr />
+
+              <h3>Challenge</h3>
+
+              <p>
+                <strong>Status:</strong>{" "}
+                {analysis.challenge?.status || "Open for Matching"}
+              </p>
+
+              <p>
+                <strong>Complaint ID:</strong>{" "}
+                {analysis.complaintId}
+              </p>
+
+            </div>
           )}
 
         </div>
-
       </div>
-
     </div>
   );
 }

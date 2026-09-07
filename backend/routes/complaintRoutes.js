@@ -39,7 +39,7 @@ router.get(
 router.put(
     "/:id",
     protect,
-    authorize("authority"),
+    authorize("authority", "university"),
     updateComplaint
 );
 
