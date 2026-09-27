@@ -19,6 +19,30 @@ const createComplaint = async (req, res) => {
             });
         }
 
+        // Validate latitude
+        if (
+            latitude !== undefined &&
+            latitude !== null &&
+            (typeof latitude !== "number" || latitude < -90 || latitude > 90)
+        ) {
+            return res.status(400).json({
+                message: "Invalid latitude. Latitude must be between -90 and 90."
+            });
+        }
+
+        // Validate longitude
+        if (
+            longitude !== undefined &&
+            longitude !== null &&
+            (typeof longitude !== "number" ||
+                longitude < -180 ||
+                longitude > 180)
+        ) {
+            return res.status(400).json({
+                message: "Invalid longitude. Longitude must be between -180 and 180."
+            });
+        }
+
         // Create complaint
         const complaint = await Complaint.create({
             title,
