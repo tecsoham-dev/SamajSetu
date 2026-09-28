@@ -1,243 +1,487 @@
-import "./Dashboard.css"; 
-import { useNavigate } from "react-router-dom"; 
-import { useState, useEffect } from "react"; 
- 
-import { 
-  FaHome, 
-  FaClipboardList, 
-  FaBell, 
-  FaUser, 
-  FaSignOutAlt, 
-  FaPlusCircle, 
-} from "react-icons/fa"; 
- 
-function Dashboard() { 
- 
-  const navigate = useNavigate(); 
- const user = JSON.parse(localStorage.getItem("currentUser"));
+import "./Dashboard.css";
+import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
 
-  const [complaints, setComplaints] = useState([]); 
- 
+import {
+  FaHome,
+  FaClipboardList,
+  FaBell,
+  FaUser,
+  FaSignOutAlt,
+  FaPlusCircle,
+} from "react-icons/fa";
+
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+} from "react-leaflet";
+
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+
+delete L.Icon.Default.prototype._getIconUrl;
+
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl:
+    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  iconUrl:
+    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl:
+    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+});
+
+function Dashboard() {
+  const navigate = useNavigate();
+
+  const user = JSON.parse(
+    localStorage.getItem("currentUser")
+  );
+
+  const [complaints, setComplaints] = useState([]);
+  const [selectedComplaint, setSelectedComplaint] =
+    useState(null);
+
+  const mapRef = useRef(null);
+
   useEffect(() => {
-  const fetchComplaints = async () => {
-    try {
-      const token = localStorage.getItem("token");
+    const fetchComplaints = async () => {
+      try {
+        const token = localStorage.getItem("token");
 
-      const response = await fetch(
-        "https://samajsetu.onrender.com/api/complaints/my",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        const response = await fetch(
+          "https://samajsetu.onrender.com/api/complaints/my",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          alert(
+            data.message ||
+              "Failed to fetch complaints"
+          );
+          return;
         }
-      );
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        alert(data.message);
-        return;
+        setComplaints(data.complaints || []);
+      } catch (error) {
+        console.error(error);
+        alert("Server Error");
       }
+    };
 
-      setComplaints(data.complaints);
+    fetchComplaints();
+  }, []);
 
-    } catch (error) {
-      console.error(error);
-      alert("Server Error");
-    }
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("currentUser");
+
+    navigate("/login");
   };
 
-  fetchComplaints();
-}, []);
-  const handleLogout = () => {
-  localStorage.removeItem("token");
-  localStorage.removeItem("currentUser");
-  navigate("/login");
-};
- 
-  return ( 
-    <div className="dashboard"> 
-        {/* Sidebar */} 
- 
-<div className="sidebar"> 
- 
-  <h2 className="logo">SamajSetu</h2> 
- 
-  <ul> 
- 
-    <li className="active"> 
-      <FaHome /> Dashboard 
-    </li> 
- 
-    <li onClick={() => navigate("/report-problem")}> 
-      <FaPlusCircle /> Report Problem 
-    </li> 
- 
-    <li onClick={() => navigate("/my-complaints")}> 
-      <FaClipboardList /> My Complaints 
-    </li> 
- 
-    <li> 
-      <FaBell /> Notifications 
-    </li> 
- 
-    <li onClick={() => navigate("/profile")}> 
-      <FaUser /> Profile 
-    </li> 
- 
-    <li onClick={handleLogout}> 
-      <FaSignOutAlt /> Logout 
-    </li> 
- 
-  </ul> 
- 
-</div> 
- 
-{/* Main Content */} 
- 
-<div className="main-content"> 
-{/* Header */}
+  const totalReports = complaints.length;
 
-<div className="dashboard-header">
+  const reportedCount = complaints.filter(
+    (item) => item.status === "reported"
+  ).length;
 
-  <div>
-    <h1>Welcome, {user?.name} 👋</h1>
-    <p>Citizen Dashboard</p>
-  </div>
+  const progressCount = complaints.filter(
+    (item) => item.status === "in-progress"
+  ).length;
 
-  <button
-    className="report-btn"
-    onClick={() => navigate("/report-problem")}
-  >
-    Report Problem
-  </button>
+  const resolvedCount = complaints.filter(
+    (item) => item.status === "resolved"
+  ).length;
 
-</div>
+  // Find the first complaint that actually has coordinates
+  const firstLocatedComplaint = complaints.find(
+    (item) =>
+      item.latitude !== undefined &&
+      item.longitude !== undefined &&
+      item.latitude !== null &&
+      item.longitude !== null
+  );
 
-  
-{/* Cards */}
+  const mapCenter = firstLocatedComplaint
+    ? [
+        firstLocatedComplaint.latitude,
+        firstLocatedComplaint.longitude,
+      ]
+    : [22.5726, 88.3639];
 
-<div className="cards">
+  return (
+    <div className="dashboard">
 
-  <div className="card">
-    <h2>{complaints.length}</h2>
-    <p>Total Reports</p>
-  </div>
+      {/* ================= SIDEBAR ================= */}
 
-  <div className="card">
-    <h2>
-      {
-        complaints.filter(
-  (item) => item.status === "reported"
-).length
-      }
-    </h2>
-    <p>Reported</p>
-  </div>
+      <div className="sidebar">
 
-  <div className="card">
-    <h2>
-      {
-        complaints.filter(
-          (item) => item.status === "in-progress"
-        ).length
-      }
-    </h2>
-    <p>In Progress</p>
-  </div>
+        <h2 className="logo">SamajSetu</h2>
 
-  <div className="card">
-    <h2>
-      {
-        complaints.filter(
-  (item) => item.status === "resolved"
-).length
-      }
-    </h2>
-    <p>Resolved</p>
-  </div>
+        <ul>
 
-</div>  
-{/* Recent Complaints */}
+          <li className="active">
+            <FaHome />
+            Dashboard
+          </li>
 
-<div className="table-section">
+          <li
+            onClick={() =>
+              navigate("/report-problem")
+            }
+          >
+            <FaPlusCircle />
+            Report Problem
+          </li>
 
-  <h2>Recent Complaints</h2>
+          <li
+            onClick={() =>
+              navigate("/my-complaints")
+            }
+          >
+            <FaClipboardList />
+            My Complaints
+          </li>
 
-  <table>
+          <li>
+            <FaBell />
+            Notifications
+          </li>
 
-    <thead>
+          <li
+            onClick={() =>
+              navigate("/profile")
+            }
+          >
+            <FaUser />
+            Profile
+          </li>
 
-      <tr>
-        <th>Problem</th>
-        <th>Category</th>
-        <th>Location</th>
-        <th>Priority</th>
-        <th>Status</th>
-        
-      </tr>
+          <li onClick={handleLogout}>
+            <FaSignOutAlt />
+            Logout
+          </li>
 
-    </thead>
+        </ul>
 
-    <tbody>
+      </div>
 
-      {complaints.length === 0 ? (
+      {/* ================= MAIN CONTENT ================= */}
 
-        <tr>
-          <td colSpan="5">No Complaints Found</td>
-        </tr>
+      <div className="main-content">
 
-      ) : (
+        {/* HEADER */}
 
-        complaints.map((item) => (
+        <div className="dashboard-header">
 
-          <tr key={item._id}>
+          <div>
 
-            <td>{item.title}</td>
+            <h1>
+              Welcome, {user?.name} 👋
+            </h1>
 
-            <td>{item.category}</td>
+            <p>
+              Citizen Dashboard
+            </p>
 
-            <td>{item.location}</td>
+          </div>
 
-            <td>{item.priority}</td>
+          <button
+            className="report-btn"
+            onClick={() =>
+              navigate("/report-problem")
+            }
+          >
+            Report Problem
+          </button>
 
-            <td>{item.status}</td>
+        </div>
 
-            
+        {/* ================= STATS ================= */}
 
-          </tr>
+        <div className="cards">
 
-        ))
+          <div className="card">
 
-      )}
+            <h2>{totalReports}</h2>
 
-    </tbody>
+            <p>Total Reports</p>
 
-  </table>
+          </div>
 
-</div>  
-{/* Notifications */}
+          <div className="card">
 
-<div className="notification-box">
+            <h2>{reportedCount}</h2>
 
-  <h2>Notifications</h2>
+            <p>Reported</p>
 
-  <ul>
+          </div>
 
-    <li>✔ Your complaint has been submitted successfully.</li>
+          <div className="card">
 
-    <li>✔ Authority will review your complaint.</li>
+            <h2>{progressCount}</h2>
 
-    <li>✔ You will receive updates after assignment.</li>
+            <p>In Progress</p>
 
-  </ul>
+          </div>
 
-</div>
+          <div className="card">
 
-</div>   
+            <h2>{resolvedCount}</h2>
 
-</div>  
+            <p>Resolved</p>
 
+          </div>
+
+        </div>
+
+        {/* ================= CONTENT ================= */}
+
+        <div className="dashboard-grid">
+
+          {/* LEFT */}
+
+          <div className="table-section">
+
+            <h2>
+              Recent Complaints
+            </h2>
+
+            <table>
+
+              <thead>
+
+                <tr>
+
+                  <th>Problem</th>
+
+                  <th>Category</th>
+
+                  <th>Location</th>
+
+                  <th>Priority</th>
+
+                  <th>Status</th>
+
+                </tr>
+
+              </thead>
+
+              <tbody>
+
+                {complaints.length === 0 ? (
+
+                  <tr>
+
+                    <td colSpan="5">
+                      No Complaints Found
+                    </td>
+
+                  </tr>
+
+                ) : (
+
+                  complaints.map((item) => (
+
+                    <tr key={item._id}>
+
+                      <td>{item.title}</td>
+
+                      <td>{item.category}</td>
+
+                      <td>{item.location}</td>
+
+                      <td>{item.priority}</td>
+
+                      <td>
+
+                        <span
+                          className={`status ${item.status}`}
+                        >
+                          {item.status}
+                        </span>
+
+                      </td>
+
+                    </tr>
+
+                  ))
+
+                )}
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+          {/* ================= RIGHT SIDE ================= */}
+
+          <div className="map-section">
+
+            <h2>My Reported Problems</h2>
+
+            <MapContainer
+              center={mapCenter}
+              zoom={12}
+              ref={mapRef}
+              style={{
+                height: "380px",
+                width: "100%",
+                borderRadius: "15px",
+              }}
+            >
+
+              <TileLayer
+                attribution="&copy; OpenStreetMap"
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+
+              {complaints.map((item) =>
+                item.latitude !== undefined &&
+                item.longitude !== undefined &&
+                item.latitude !== null &&
+                item.longitude !== null ? (
+
+                  <Marker
+                    key={item._id}
+                    position={[
+                      item.latitude,
+                      item.longitude,
+                    ]}
+                    eventHandlers={{
+                      click: () =>
+                        setSelectedComplaint(item),
+                    }}
+                  >
+
+                    <Popup>
+
+                      <strong>
+                        {item.title}
+                      </strong>
+
+                      <br />
+
+                      {item.location}
+
+                      <br />
+
+                      Status: {item.status}
+
+                    </Popup>
+
+                  </Marker>
+
+                ) : null
+              )}
+
+            </MapContainer>
+
+            {selectedComplaint ? (
+
+              <div className="selected-card">
+
+                <h3>
+                  📍 Complaint Details
+                </h3>
+
+                <p>
+                  <strong>Problem:</strong>
+                  {selectedComplaint.title}
+                </p>
+
+                <p>
+                  <strong>Category:</strong>
+                  {selectedComplaint.category}
+                </p>
+
+                <p>
+                  <strong>Location:</strong>
+                  {selectedComplaint.location}
+                </p>
+
+                <p>
+                  <strong>Priority:</strong>
+                  {selectedComplaint.priority}
+                </p>
+
+                <p>
+
+                  <strong>Status:</strong>
+
+                  <span
+                    className={`status ${selectedComplaint.status}`}
+                  >
+                    {selectedComplaint.status}
+                  </span>
+
+                </p>
+
+                <p>
+                  <strong>Description:</strong>
+                  {selectedComplaint.description}
+                </p>
+
+              </div>
+
+            ) : (
+
+              <div className="selected-card empty-card">
+
+                <h3>Select a Marker</h3>
+
+                <p>
+                  Click any marker on the map to
+                  view complete complaint details.
+                </p>
+
+              </div>
+
+            )}
+
+          </div>
+
+        </div>
+
+        {/* ================= NOTIFICATIONS ================= */}
+
+        <div className="notification-box">
+
+          <h2>Notifications</h2>
+
+          <ul>
+
+            <li>
+              ✅ Complaint submitted successfully.
+            </li>
+
+            <li>
+              🔄 Your authority will review your complaint.
+            </li>
+
+            <li>
+              📢 Status updates will appear here.
+            </li>
+
+            <li>
+              🎯 Track your complaints live on the map.
+            </li>
+
+          </ul>
+
+        </div>
+
+      </div>
+
+    </div>
   );
 }
 
