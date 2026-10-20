@@ -45,6 +45,11 @@ const complaintSchema = new mongoose.Schema(
             type: Number
         },
 
+        imageUrl: {
+            type: String,
+            default: ""
+        },
+
         reportedBy: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
@@ -71,7 +76,7 @@ const complaintSchema = new mongoose.Schema(
             default: "medium"
         },
 
-        // Assignment information
+        // Assignment information (from backend-workflow)
         assignedTo: {
             type: String,
             enum: ["University", "Industry"],
@@ -80,6 +85,48 @@ const complaintSchema = new mongoose.Schema(
 
         assignedEntity: {
             type: mongoose.Schema.Types.ObjectId,
+            default: null
+        },
+
+        // Structured Vision AI findings
+        imageAnalysisResults: [
+            {
+                tag: {
+                    type: String,
+                    trim: true
+                },
+                confidence: {
+                    type: Number,
+                    default: null
+                },
+                heuristicConfidence: {
+                    type: Number,
+                    default: null
+                },
+                confidenceType: {
+                    type: String,
+                    trim: true
+                },
+                category: {
+                    type: String,
+                    trim: true
+                },
+                description: {
+                    type: String,
+                    trim: true
+                },
+                detectedObjects: [
+                    {
+                        type: String,
+                        trim: true
+                    }
+                ]
+            }
+        ],
+
+        // Comprehensive Structured AI Analysis & Organization Recommendations
+        aiAnalysis: {
+            type: mongoose.Schema.Types.Mixed,
             default: null
         }
     },

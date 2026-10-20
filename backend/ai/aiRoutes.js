@@ -5,7 +5,8 @@ const {
     analyzeComplaint,
     detectDuplicates,
     matchUniversitiesAndIndustries,
-    routeAuthority
+    routeAuthority,
+    processPipeline
 } = require("./aiEngine");
 
 const { protect } = require("../middleware/authMiddleware");
@@ -263,7 +264,39 @@ router.post("/route-authority", protect, async (req, res) => {
 
 /*
 |--------------------------------------------------------------------------
-| COMPLETE AI PIPELINE
+| STANDALONE COMPLETE AI PIPELINE
+|--------------------------------------------------------------------------
+*/
+
+router.post("/pipeline", async (req, res) => {
+    try {
+        const { complaint, existingComplaints, universities, industries, authorities } = req.body;
+        if (!complaint) {
+            return res.status(400).json({
+                success: false,
+                error: "complaint payload is required."
+            });
+        }
+        const result = processPipeline(
+            complaint,
+            existingComplaints || [],
+            universities || [],
+            industries || [],
+            authorities || []
+        );
+        return res.json(result);
+    } catch (error) {
+        console.error("AI standalone pipeline error:", error);
+        return res.status(500).json({
+            success: false,
+            error: error.message || "AI standalone pipeline failed."
+        });
+    }
+});
+
+/*
+|--------------------------------------------------------------------------
+| COMPLETE AI PIPELINE (BY COMPLAINT ID)
 |--------------------------------------------------------------------------
 */
 
