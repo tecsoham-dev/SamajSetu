@@ -10,6 +10,7 @@ const {
 } = require("./aiEngine");
 
 const { protect } = require("../middleware/authMiddleware");
+const { authorize } = require("../middleware/roleMiddleware");
 
 const Complaint = require("../models/Complaint");
 const University = require("../models/University");
@@ -268,7 +269,7 @@ router.post("/route-authority", protect, async (req, res) => {
 |--------------------------------------------------------------------------
 */
 
-router.post("/pipeline", async (req, res) => {
+router.post("/pipeline", protect, authorize("authority"), async (req, res) => {
     try {
         const { complaint, existingComplaints, universities, industries, authorities } = req.body;
         if (!complaint) {
@@ -300,7 +301,7 @@ router.post("/pipeline", async (req, res) => {
 |--------------------------------------------------------------------------
 */
 
-router.post("/pipeline/:complaintId", protect, async (req, res) => {
+router.post("/pipeline/:complaintId", protect, authorize("authority"), async (req, res) => {
     try {
         const { complaintId } = req.params;
 

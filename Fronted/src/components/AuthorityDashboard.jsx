@@ -38,6 +38,7 @@ function AuthorityDashboard() {
   const [universities, setUniversities] = useState([]);
   const [industries, setIndustries] = useState([]);
   const [complaints, setComplaints] = useState([]);
+  const [assignmentSelections, setAssignmentSelections] = useState({});
 
   const [selectedComplaint, setSelectedComplaint] =
     useState(null);
@@ -206,10 +207,26 @@ function AuthorityDashboard() {
 
   /* ================= ASSIGN COMPLAINT ================= */
 
+  const updateAssignmentSelection = (id, field, value) => {
+    setAssignmentSelections((prev) => ({
+      ...prev,
+      [id]: {
+        ...(prev[id] || {}),
+        [field]: value,
+        ...(field === "assignedTo" ? { assignedEntity: "" } : {}),
+      },
+    }));
+  };
+
   const assignComplaint = async (
     id,
-    assignedTo
+    assignedTo,
+    assignedEntity
   ) => {
+    if (!assignedTo || !assignedEntity) {
+      alert("Please select both the organisation type and the exact organisation.");
+      return;
+    }
     try {
       const token = localStorage.getItem("token");
 
@@ -223,7 +240,7 @@ function AuthorityDashboard() {
           },
           body: JSON.stringify({
             assignedTo,
-            status: "matched",
+            assignedEntity,
           }),
         }
       );
@@ -685,6 +702,31 @@ function AuthorityDashboard() {
                     "Not Assigned"}
                 </p>
 
+                {selectedComplaint.aiAnalysis && (
+                  <div className="ai-recommendations" style={{ margin: "12px 0" }}>
+                    <h4>AI Recommendations</h4>
+                    {selectedComplaint.aiAnalysis.summary && (
+                      <p>{selectedComplaint.aiAnalysis.summary}</p>
+                    )}
+                    <p><strong>Suggested Universities:</strong></p>
+                    <ul>
+                      {(selectedComplaint.aiAnalysis.universityRecommendations || []).map((rec, index) => (
+                        <li key={`uni-${index}`}>
+                          {typeof rec === "string" ? rec : (rec.name || rec.universityName || rec.organizationName || "University recommendation")}
+                        </li>
+                      ))}
+                    </ul>
+                    <p><strong>Suggested Industries:</strong></p>
+                    <ul>
+                      {(selectedComplaint.aiAnalysis.industryRecommendations || []).map((rec, index) => (
+                        <li key={`industry-${index}`}>
+                          {typeof rec === "string" ? rec : (rec.name || rec.companyName || rec.organizationName || "Industry recommendation")}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
                 <p>
                   <strong>
                     Date:
@@ -1054,35 +1096,60 @@ function AuthorityDashboard() {
                       </td>
 
                       <td>
+                        <div className="action-buttons" style={{ display: "flex", flexDirection: "column", gap: "8px", minWidth: "190px" }}>
+                          <select
+                            value={assignmentSelections[item._id]?.assignedTo || item.assignedTo || ""}
+                            onChange={(e) => updateAssignmentSelection(item._id, "assignedTo", e.target.value)}
+                          >
+                            <option value="">Select type</option>
+                            <option value="University">University</option>
+                            <option value="Industry">Industry</option>
+                          </select>
 
-                        <div className="action-buttons">
+                          {(assignmentSelections[item._id]?.assignedTo || item.assignedTo) === "University" && (
+                            <select
+                              value={(assignmentSelections[item._id] && Object.prototype.hasOwnProperty.call(assignmentSelections[item._id], "assignedEntity"))
+                                ? assignmentSelections[item._id].assignedEntity
+                                : (item.assignedEntity?._id || item.assignedEntity || "")}
+                              onChange={(e) => updateAssignmentSelection(item._id, "assignedEntity", e.target.value)}
+                            >
+                              <option value="">Select verified university</option>
+                              {universities.filter((uni) => uni.verificationStatus === "Verified").map((uni) => (
+                                <option key={uni._id} value={uni._id}>{uni.name}</option>
+                              ))}
+                            </select>
+                          )}
+
+                          {(assignmentSelections[item._id]?.assignedTo || item.assignedTo) === "Industry" && (
+                            <select
+                              value={(assignmentSelections[item._id] && Object.prototype.hasOwnProperty.call(assignmentSelections[item._id], "assignedEntity"))
+                                ? assignmentSelections[item._id].assignedEntity
+                                : (item.assignedEntity?._id || item.assignedEntity || "")}
+                              onChange={(e) => updateAssignmentSelection(item._id, "assignedEntity", e.target.value)}
+                            >
+                              <option value="">Select verified industry</option>
+                              {industries.filter((industry) => industry.verificationStatus === "Verified").map((industry) => (
+                                <option key={industry._id} value={industry._id}>{industry.companyName || industry.name}</option>
+                              ))}
+                            </select>
+                          )}
 
                           <button
-                            className="assign-btn university-btn"
-                            onClick={() =>
-                              assignComplaint(
-                                item._id,
-                                "University"
-                              )
-                            }
+                            className="assign-btn"
+                            disabled={!((assignmentSelections[item._id]?.assignedTo || item.assignedTo) && ((assignmentSelections[item._id] && Object.prototype.hasOwnProperty.call(assignmentSelections[item._id], "assignedEntity"))
+                              ? assignmentSelections[item._id].assignedEntity
+                              : (item.assignedEntity?._id || item.assignedEntity)))}
+                            onClick={() => assignComplaint(
+                              item._id,
+                              assignmentSelections[item._id]?.assignedTo || item.assignedTo,
+                              (assignmentSelections[item._id] && Object.prototype.hasOwnProperty.call(assignmentSelections[item._id], "assignedEntity"))
+                              ? assignmentSelections[item._id].assignedEntity
+                              : (item.assignedEntity?._id || item.assignedEntity)
+                            )}
                           >
-                            University
+                            Assign Organisation
                           </button>
-
-                          <button
-                            className="assign-btn industry-btn"
-                            onClick={() =>
-                              assignComplaint(
-                                item._id,
-                                "Industry"
-                              )
-                            }
-                          >
-                            Industry
-                          </button>
-
                         </div>
-
                       </td>
 
                     </tr>

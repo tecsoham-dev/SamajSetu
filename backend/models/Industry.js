@@ -70,7 +70,7 @@ const industrySchema = new mongoose.Schema(
         verificationStatus: {
             type: String,
             enum: ["Pending", "Verified", "Rejected"],
-            default: "Verified"
+            default: "Pending"
         }
     },
     {

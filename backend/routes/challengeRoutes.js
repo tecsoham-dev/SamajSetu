@@ -8,6 +8,7 @@ const {
 } = require("../controllers/challengeController");
 
 const { protect } = require("../middleware/authMiddleware");
+const { authorize } = require("../middleware/roleMiddleware");
 
 const router = express.Router();
 
@@ -29,6 +30,7 @@ router.get(
 router.post(
     "/",
     protect,
+    authorize("authority"),
     createChallenge
 );
 
@@ -36,6 +38,7 @@ router.post(
 router.put(
     "/:id",
     protect,
+    authorize("authority"),
     updateChallenge
 );
 

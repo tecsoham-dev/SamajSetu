@@ -138,6 +138,27 @@ const loginUser = async (req, res) => {
             });
         }
 
+        // Institutional accounts require authority approval, a valid link,
+        // and an organisation that is currently verified.
+        if (["university", "industry"].includes(user.role)) {
+            if (!user.organizationId || !user.organizationType) {
+                return res.status(403).json({ message: "Your account is awaiting organisation linking and authority approval." });
+            }
+            if (!user.isVerified) {
+                return res.status(403).json({ message: "Your account is awaiting authority approval." });
+            }
+            const OrganizationModel = user.organizationType === "University"
+                ? University
+                : user.organizationType === "Industry" ? Industry : null;
+            if (!OrganizationModel) {
+                return res.status(403).json({ message: "Your account has an invalid organisation link. Contact the authority." });
+            }
+            const linkedOrganization = await OrganizationModel.findById(user.organizationId);
+            if (!linkedOrganization || linkedOrganization.verificationStatus !== "Verified") {
+                return res.status(403).json({ message: "Your linked organisation is not currently verified." });
+            }
+        }
+
         if (!process.env.JWT_SECRET) {
             console.error("JWT_SECRET is not configured");
 
@@ -262,8 +283,10 @@ const linkUserToOrganization = async (req, res) => {
                 targetUser.organizationType === organizationType;
 
             if (alreadyLinkedToSameOrganization) {
+                targetUser.isVerified = true;
+                await targetUser.save();
                 return res.status(200).json({
-                    message: "User is already linked to this organization",
+                    message: "User is already linked to this organization and is approved",
                     user: {
                         id: targetUser._id,
                         name: targetUser.name,
@@ -282,6 +305,7 @@ const linkUserToOrganization = async (req, res) => {
 
         targetUser.organizationId = organization._id;
         targetUser.organizationType = organizationType;
+        targetUser.isVerified = true;
 
         await targetUser.save();
 

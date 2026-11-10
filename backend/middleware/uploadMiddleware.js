@@ -20,17 +20,21 @@ const storage = multer.diskStorage({
     }
 });
 
-// File filter (accept images only)
-const fileFilter = (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|webp|gif/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
+// Require both a permitted extension and a matching image MIME type.
+// This is an initial validation layer; production deployments should also inspect file signatures.
+const MIME_BY_EXTENSION = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".webp": "image/webp",
+    ".gif": "image/gif"
+};
 
-    if (extname || mimetype) {
-        return cb(null, true);
-    } else {
-        cb(new Error("Only image files (JPEG, JPG, PNG, WEBP, GIF) are allowed!"));
-    }
+const fileFilter = (req, file, cb) => {
+    const extension = path.extname(file.originalname || "").toLowerCase();
+    const expectedMime = MIME_BY_EXTENSION[extension];
+    if (expectedMime && file.mimetype === expectedMime) return cb(null, true);
+    return cb(new Error("Upload a valid JPEG, PNG, WEBP, or GIF image."));
 };
 
 const upload = multer({

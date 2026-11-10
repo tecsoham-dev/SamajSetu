@@ -34,7 +34,7 @@ async function getOrganization(user) {
         );
     }
 
-    if (!organization) {
+    if (!organization || organization.verificationStatus !== "Verified" || !account.isVerified) {
         return null;
     }
 

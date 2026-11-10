@@ -95,13 +95,18 @@ const createAuthority = async (req, res) => {
 // UPDATE AUTHORITY
 const updateAuthority = async (req, res) => {
     try {
+        const allowedFields = ["departmentName", "jurisdiction", "authorityType", "officialInCharge", "assignedCategories"];
+        const update = {};
+        for (const field of allowedFields) {
+            if (req.body && req.body[field] !== undefined) update[field] = req.body[field];
+        }
+        if (Object.keys(update).length === 0) {
+            return res.status(400).json({ message: "No permitted update fields supplied" });
+        }
         const authority = await Authority.findByIdAndUpdate(
             req.params.id,
-            req.body,
-            {
-                new: true,
-                runValidators: true
-            }
+            update,
+            { new: true, runValidators: true }
         );
 
         if (!authority) {
