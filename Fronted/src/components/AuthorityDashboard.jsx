@@ -702,30 +702,91 @@ function AuthorityDashboard() {
                     "Not Assigned"}
                 </p>
 
-                {selectedComplaint.aiAnalysis && (
-                  <div className="ai-recommendations" style={{ margin: "12px 0" }}>
-                    <h4>AI Recommendations</h4>
-                    {selectedComplaint.aiAnalysis.summary && (
-                      <p>{selectedComplaint.aiAnalysis.summary}</p>
+                <div className="complaint-description">
+                  <h4>Complaint Description</h4>
+                  <p>{selectedComplaint.description || "No description provided."}</p>
+                </div>
+
+                <div className="ai-recommendations">
+                  <h4>AI Analysis & Recommendations</h4>
+
+                  {selectedComplaint.aiAnalysis?.summary ? (
+                    <p className="ai-summary">{selectedComplaint.aiAnalysis.summary}</p>
+                  ) : (
+                    <p className="ai-empty">AI analysis is not available for this complaint yet.</p>
+                  )}
+
+                  {selectedComplaint.aiAnalysis?.requiredExpertise?.length > 0 && (
+                    <p className="ai-expertise">
+                      <strong>Required Expertise:</strong>{" "}
+                      {selectedComplaint.aiAnalysis.requiredExpertise.join(", ")}
+                    </p>
+                  )}
+
+                  <div className="recommendation-group">
+                    <h5>🎓 Recommended Universities</h5>
+                    {(selectedComplaint.aiAnalysis?.universityRecommendations || []).length > 0 ? (
+                      <ul className="recommendation-list">
+                        {selectedComplaint.aiAnalysis.universityRecommendations.slice(0, 5).map((rec, index) => {
+                          const name = typeof rec === "string"
+                            ? rec
+                            : (rec.name || rec.universityName || rec.organizationName || "University recommendation");
+                          const score = typeof rec === "object" ? (rec.matchScore ?? rec.score) : null;
+                          const expertise = typeof rec === "object" && Array.isArray(rec.matchedExpertise)
+                            ? rec.matchedExpertise
+                            : [];
+                          return (
+                            <li key={rec.universityId || rec._id || `uni-${index}`}>
+                              <div className="recommendation-heading">
+                                <strong>{name}</strong>
+                                {score !== null && score !== undefined && (
+                                  <span className="match-score">{Math.round(Number(score))}% match</span>
+                                )}
+                              </div>
+                              {expertise.length > 0 && (
+                                <small>Expertise: {expertise.join(", ")}</small>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    ) : (
+                      <p className="ai-empty">No suitable verified university match was found.</p>
                     )}
-                    <p><strong>Suggested Universities:</strong></p>
-                    <ul>
-                      {(selectedComplaint.aiAnalysis.universityRecommendations || []).map((rec, index) => (
-                        <li key={`uni-${index}`}>
-                          {typeof rec === "string" ? rec : (rec.name || rec.universityName || rec.organizationName || "University recommendation")}
-                        </li>
-                      ))}
-                    </ul>
-                    <p><strong>Suggested Industries:</strong></p>
-                    <ul>
-                      {(selectedComplaint.aiAnalysis.industryRecommendations || []).map((rec, index) => (
-                        <li key={`industry-${index}`}>
-                          {typeof rec === "string" ? rec : (rec.name || rec.companyName || rec.organizationName || "Industry recommendation")}
-                        </li>
-                      ))}
-                    </ul>
                   </div>
-                )}
+
+                  <div className="recommendation-group">
+                    <h5>🏭 Recommended Industries</h5>
+                    {(selectedComplaint.aiAnalysis?.industryRecommendations || []).length > 0 ? (
+                      <ul className="recommendation-list">
+                        {selectedComplaint.aiAnalysis.industryRecommendations.slice(0, 5).map((rec, index) => {
+                          const name = typeof rec === "string"
+                            ? rec
+                            : (rec.companyName || rec.name || rec.organizationName || "Industry recommendation");
+                          const score = typeof rec === "object" ? (rec.matchScore ?? rec.score) : null;
+                          const support = typeof rec === "object"
+                            ? (rec.supportOffered || rec.matchedCapabilities || rec.matchedSectors || [])
+                            : [];
+                          return (
+                            <li key={rec.industryId || rec._id || `industry-${index}`}>
+                              <div className="recommendation-heading">
+                                <strong>{name}</strong>
+                                {score !== null && score !== undefined && (
+                                  <span className="match-score">{Math.round(Number(score))}% match</span>
+                                )}
+                              </div>
+                              {Array.isArray(support) && support.length > 0 && (
+                                <small>Relevant support: {support.join(", ")}</small>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    ) : (
+                      <p className="ai-empty">No suitable verified industry match was found.</p>
+                    )}
+                  </div>
+                </div>
 
                 <p>
                   <strong>
@@ -739,17 +800,7 @@ function AuthorityDashboard() {
                     : "N/A"}
                 </p>
 
-                <button
-                  className="view-btn"
-                  onClick={() =>
-                    alert(
-                      selectedComplaint.description ||
-                        "No description available."
-                    )
-                  }
-                >
-                  View Complaint →
-                </button>
+
 
               </div>
 
