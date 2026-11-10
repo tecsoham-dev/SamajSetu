@@ -301,7 +301,7 @@ router.post("/pipeline", protect, authorize("authority"), async (req, res) => {
 |--------------------------------------------------------------------------
 */
 
-router.post("/pipeline/:complaintId", protect, authorize("authority"), async (req, res) => {
+router.post("/pipeline/:complaintId", protect, authorize("authority", "citizen"), async (req, res) => {
     try {
         const { complaintId } = req.params;
 
@@ -317,6 +317,17 @@ router.post("/pipeline/:complaintId", protect, authorize("authority"), async (re
             return res.status(404).json({
                 success: false,
                 error: "Complaint not found."
+            });
+        }
+
+        // Citizens may run the pipeline only for complaints they personally submitted.
+        if (
+            req.user.role === "citizen" &&
+            String(complaint.reportedBy) !== String(req.user.userId)
+        ) {
+            return res.status(403).json({
+                success: false,
+                error: "You can analyze only your own complaints."
             });
         }
 
@@ -480,15 +491,32 @@ router.post("/pipeline/:complaintId", protect, authorize("authority"), async (re
         |--------------------------------------------------------------------------
         */
 
-        await Complaint.findByIdAndUpdate(
+        // Persist the same ranked recommendations returned to the citizen UI
+        // so the Authority Dashboard can display the exact AI results later.
+        const savedAiAnalysis = {
+            ...(complaint.aiAnalysis && typeof complaint.aiAnalysis === "object"
+                ? complaint.aiAnalysis
+                : {}),
+            ...analysis,
+            category: databaseCategory,
+            priority: databasePriority,
+            universityRecommendations: entityMatches.allMatchedUniversities || [],
+            industryRecommendations: entityMatches.allMatchedIndustries || []
+        };
+
+        const updatedComplaint = await Complaint.findByIdAndUpdate(
             complaint._id,
             {
-                category: databaseCategory,
-                priority: databasePriority,
-                status: duplicateDetection.isDuplicate
-                    ? "consolidated"
-                    : "matched"
-            }
+                $set: {
+                    category: databaseCategory,
+                    priority: databasePriority,
+                    status: duplicateDetection.isDuplicate
+                        ? "consolidated"
+                        : "matched",
+                    aiAnalysis: savedAiAnalysis
+                }
+            },
+            { new: true, runValidators: true }
         );
 
         /*
@@ -508,11 +536,7 @@ router.post("/pipeline/:complaintId", protect, authorize("authority"), async (re
             pipeline: {
                 complaintId: complaint._id,
 
-                aiAnalysis: {
-                    ...analysis,
-                    category: databaseCategory,
-                    priority: databasePriority
-                },
+                aiAnalysis: updatedComplaint.aiAnalysis,
 
                 duplicateDetection,
 
